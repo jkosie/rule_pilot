@@ -11,29 +11,35 @@ library(tidyverse)
 ```
 
 # Texforms Data
+
 ```{r}
-
 texForms <- read_csv("TexForms_Data.csv")
+```
 
-#Plot average dwell times across sequence
+Plot average dwell times across sequence
+
+```{r}
 texForms %>% 
   group_by(SlideNumber) %>% 
   summarise(avg_residDT = mean(residDT)) %>% 
   ggplot(mapping = aes(x = SlideNumber, y = avg_residDT)) +
   geom_line()
+```
 
-#Plot average dwell times across sequence - separated by location in seqeunce (i.e., first, second, third, or blank image). This what I meant by dwelltimes to the first and second slide in the triad being close for early slides and then separating such that dt to the first slide is higher than the second.
+
+Plot average dwell times across sequence - separated by location in seqeunce (i.e., first, second, third, or blank image). This what I meant by dwelltimes to the first and second slide in the triad being close for early slides and then separating such that dt to the first slide is higher than the second.
+
+```{r}
 texForms %>% 
   group_by(SlideNumber, SequenceLocation) %>% 
   summarise(avg_residDT = mean(residDT)) %>% 
   ggplot(mapping = aes(x = SlideNumber, y = avg_residDT, color = SequenceLocation)) +
   geom_line()
+```
 
-#Same thing plotted using geom_smooth
-ggplot(data = texForms, mapping = aes(x = SlideNumber, y = residDT, color = SequenceLocation)) +
-  geom_smooth(method = "loess")
+Barplot of average dwell times across the sequence
 
-#Barplot of average dwell times across the sequence
+```{r}
 texForms %>% 
   group_by(SequenceLocation) %>% 
   summarise(mean = mean(residDT, na.rm=TRUE),
@@ -45,10 +51,14 @@ texForms %>%
   geom_bar(stat="identity", position=position_dodge()) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se),position=position_dodge(width=0.9), width=.1) 
 
-#Barplot across the first ten triads in the sequence
+```
+
+Barplot across the first ten triads in the sequence
+
+```{r}
 texForms %>% 
-  filter(SequenceNumber <= 10) %>% 
-  group_by(SequenceLocation, SequenceNumber) %>% 
+  mutate(SequenceBin = cut(SequenceNumber, seq(0,48,8))) %>%
+  group_by(SequenceLocation, SequenceBin) %>% 
   summarise(mean = mean(residDT, na.rm=TRUE),
             sd = sd(residDT, na.rm=TRUE),
             n = n(),
@@ -57,33 +67,68 @@ texForms %>%
   ggplot(aes(x=SequenceLocation, y=mean, fill=SequenceLocation)) +
   geom_bar(stat="identity", position=position_dodge()) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se),position=position_dodge(width=0.9), width=.1) +
-  facet_wrap(~SequenceNumber, ncol = 5)
+  facet_grid(.~SequenceBin) + 
+  theme(legend.position = "bottom")
 
 ```
-# Dogs Data
+
 ```{r}
+texForms %>% 
+  filter(SequenceLocation != "Blank") %>%
+  mutate(SequenceBin = cut(SequenceNumber, seq(0,48,8))) %>%
+  group_by(SequenceLocation, SequenceBin) %>% 
+  summarise(mean = mean(residDT, na.rm=TRUE),
+            sd = sd(residDT, na.rm=TRUE),
+            n = n(),
+            se=sd/sqrt(n),
+            ci = qt(0.975,df=n-1)*se) %>% 
+  ggplot(aes(x=SequenceBin, y=mean, col=SequenceLocation, group = SequenceLocation)) +
+  geom_line() +
+  geom_linerange(aes(ymin=mean-ci, ymax=mean+ci), 
+                 position = position_dodge(width = .1)) +
+  theme(legend.position = "bottom")
 
+```
+
+# Dogs Data
+
+```{r}
 Dogs <- read_csv("Dogs_Data.csv")
+```
 
-#Plot average dwell times across sequence
+
+Plot average dwell times across sequence
+
+```{r}
 Dogs %>% 
   group_by(SlideNumber) %>% 
   summarise(avg_residDT = mean(residDT,na.rm = T)) %>% 
   ggplot(mapping = aes(x = SlideNumber, y = avg_residDT)) +
   geom_line()
+```
 
-#Plot average dwell times across sequence - separated by location in seqeunce (i.e., first, second, third, or blank image)
+
+Plot average dwell times across sequence - separated by location in seqeunce (i.e., first, second, third, or blank image)
+
+```{r}
 Dogs %>% 
   group_by(SlideNumber, SequenceLocation) %>% 
   summarise(avg_residDT = mean(residDT)) %>% 
   ggplot(mapping = aes(x = SlideNumber, y = avg_residDT, color = SequenceLocation)) +
   geom_line()
+```
 
-#Plotted using geom_smooth
+
+Plotted using geom_smooth
+
+```{r}
 ggplot(data = Dogs, mapping = aes(x = SlideNumber, y = residDT, color = SequenceLocation)) +
   geom_smooth(method = "loess")
+```
 
-#Barplot of average dwell times across the sequence
+Barplot of average dwell times across the sequence
+
+```{r}
 Dogs %>% 
   group_by(SequenceLocation) %>% 
   summarise(mean = mean(residDT, na.rm=TRUE),
@@ -94,8 +139,11 @@ Dogs %>%
   ggplot(aes(x=SequenceLocation, y=mean, fill=SequenceLocation)) +
   geom_bar(stat="identity", position=position_dodge()) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se),position=position_dodge(width=0.9), width=.1) 
+```
 
-#Barplot across the first ten triads in the sequence
+Barplot across the first ten triads in the sequence
+
+```{r}
 Dogs %>% 
   filter(SequenceNumber <= 10) %>% 
   group_by(SequenceLocation, SequenceNumber) %>% 
@@ -109,3 +157,93 @@ Dogs %>%
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se),position=position_dodge(width=0.9), width=.1) +
   facet_wrap(~SequenceNumber, ncol = 5)
 ```
+
+# Combined
+
+I think it's easier to look at everything at once. 
+
+```{r}
+d <- bind_rows(list("texforms - ABB" = texForms, 
+                    "dogs - ABA" = Dogs), .id = "Study")
+```
+
+Barplots. 
+
+It's pretty clear that the blank slide is getting faster in every case. This doesn't really tell us anything except that participants are learning the structure of the trios and predicting that a blank is coming so they can page through. So I'm excluding these. 
+
+(Note that they do create some bias in the residualization procedure because they're going down so fast, so everything looks like it goes down a bit slower). 
+
+Plot the rest of the data. To me this looks like there's more movement in items 2 and 3 than in item 1. This is consistent with the idea that the sequences are becoming more predictable over the course of the experiment. 
+
+```{r}
+d %>% 
+  filter(SequenceLocation != "Blank") %>%
+  mutate(SequenceBin = cut(SequenceNumber, seq(0,48,24))) %>%
+  group_by(Study, SequenceLocation, SequenceBin) %>% 
+  summarise(mean = mean(residDT, na.rm=TRUE),
+            sd = sd(residDT, na.rm=TRUE),
+            n = n(),
+            se=sd/sqrt(n),
+            ci = qt(0.975,df=n-1)*se) %>% 
+  ggplot(aes(x=SequenceLocation, y=mean, fill=SequenceLocation)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se),position=position_dodge(width=0.9), width=.1) +
+  facet_grid(Study~SequenceBin) + 
+  theme(legend.position = "bottom", 
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5))
+
+```
+
+We can visualize these as learning curves, where it's clear that the distance between the dwell time on the first element of the sequence and the other two is going up for both stimulus types. To me that signals greater prediction happening, which is good. 
+
+Incidentally, it also seems as though the texforms are eliciting more extreme looking times, which means it's relatively easier to see learning. So that's a good thing. 
+
+
+```{r}
+d %>% 
+  filter(SequenceLocation != "Blank") %>%
+  mutate(SequenceBin = cut(SequenceNumber, seq(0,48,8))) %>%
+  group_by(Study, SequenceLocation, SequenceBin) %>% 
+  summarise(mean = mean(residDT, na.rm=TRUE),
+            sd = sd(residDT, na.rm=TRUE),
+            n = n(),
+            se=sd/sqrt(n),
+            ci = qt(0.975,df=n-1)*se) %>% 
+  ggplot(aes(x=SequenceBin, y=mean, col=SequenceLocation, group = SequenceLocation)) +
+  geom_line() +
+  geom_linerange(aes(ymin=mean-ci, ymax=mean+ci), 
+                 position = position_dodge(width = .1)) +
+  facet_wrap(~Study) + 
+  theme(legend.position = "bottom") + 
+  xlab("Sequence Number (binned)") + 
+  ylab("Mean Residual Dwell Time")
+```
+
+Very exploratory analysis: plot the differences - slide 1/2 and slide 2/3. It seems to me pretty clear here that the difference between slide 1 and 2 is increasing, indicating a predictability effect as you get into the sequence. Interestingly this appears to be happening not on the identity (2/3) but rather on the first and second slide. 
+
+```{r}
+d %>% 
+  mutate(SequenceBin = cut(SequenceNumber, seq(0,48,8))) %>%
+  mutate(diffDT = lag(residDT) - residDT) %>%
+  group_by(Study, SequenceLocation, SequenceBin) %>% 
+  summarise(mean = mean(diffDT, na.rm=TRUE),
+            sd = sd(diffDT, na.rm=TRUE),
+            n = n(),
+            se=sd/sqrt(n),
+            ci = qt(0.975,df=n-1)*se) %>% 
+  filter(SequenceLocation %in% c("Slide2","Slide3")) %>%
+  mutate(DiffLocation = fct_recode(factor(SequenceLocation), 
+                                "Slide1/2" = "Slide2", 
+                                "Slide2/3" = "Slide3")) %>%
+  ggplot(aes(x=SequenceBin, y=mean, col=DiffLocation, group = DiffLocation)) +
+  geom_linerange(aes(ymin=mean-ci, ymax=mean+ci), 
+                 position = position_dodge(width = .1)) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Study) + 
+  geom_hline(yintercept = 0, lty = 2) + 
+  xlab("Sequence Number (binned)") + 
+  ylab("Mean Residual Dwell Time") + 
+  theme(legend.position = "bottom", 
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5))
+```
+

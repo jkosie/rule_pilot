@@ -214,9 +214,13 @@ d %>%
   geom_linerange(aes(ymin=mean-ci, ymax=mean+ci), 
                  position = position_dodge(width = .1)) +
   facet_wrap(~Study) + 
-  theme(legend.position = "bottom") + 
   xlab("Sequence Number (binned)") + 
-  ylab("Mean Residual Dwell Time")
+  ylab("Mean Residual Dwell Time") +
+  ggthemes::theme_few() + 
+  ggthemes::scale_color_ptol(title = "Location") + 
+  theme(legend.position = "bottom" + 
+          axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5)) 
+
 ```
 
 Very exploratory analysis: plot the differences - slide 1/2 and slide 2/3. It seems to me pretty clear here that the difference between slide 1 and 2 is increasing, indicating a predictability effect as you get into the sequence. Interestingly this appears to be happening not on the identity (2/3) but rather on the first and second slide. 

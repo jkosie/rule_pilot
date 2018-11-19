@@ -1,0 +1,111 @@
+---
+title: "Rule_Learning_Pilot"
+author: "Jessica Kosie"
+date: "November 18, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Texforms Data
+```{r}
+
+texForms <- read_csv("TexForms_Data.csv")
+
+#Plot average dwell times across sequence
+texForms %>% 
+  group_by(SlideNumber) %>% 
+  summarise(avg_residDT = mean(residDT)) %>% 
+  ggplot(mapping = aes(x = SlideNumber, y = avg_residDT)) +
+  geom_line()
+
+#Plot average dwell times across sequence - separated by location in seqeunce (i.e., first, second, third, or blank image). This what I meant by dwelltimes to the first and second slide in the triad being close for early slides and then separating such that dt to the first slide is higher than the second.
+texForms %>% 
+  group_by(SlideNumber, SequenceLocation) %>% 
+  summarise(avg_residDT = mean(residDT)) %>% 
+  ggplot(mapping = aes(x = SlideNumber, y = avg_residDT, color = SequenceLocation)) +
+  geom_line()
+
+#Same thing plotted using geom_smooth
+ggplot(data = texForms, mapping = aes(x = SlideNumber, y = residDT, color = SequenceLocation)) +
+  geom_smooth(method = "loess")
+
+#Barplot of average dwell times across the sequence
+texForms %>% 
+  group_by(SequenceLocation) %>% 
+  summarise(mean = mean(residDT, na.rm=TRUE),
+            sd = sd(residDT, na.rm=TRUE),
+            n = n(),
+            se=sd/sqrt(n),
+            ci = qt(0.975,df=n-1)*se) %>% 
+  ggplot(aes(x=SequenceLocation, y=mean, fill=SequenceLocation)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se),position=position_dodge(width=0.9), width=.1) 
+
+#Barplot across the first ten triads in the sequence
+texForms %>% 
+  filter(SequenceNumber <= 10) %>% 
+  group_by(SequenceLocation, SequenceNumber) %>% 
+  summarise(mean = mean(residDT, na.rm=TRUE),
+            sd = sd(residDT, na.rm=TRUE),
+            n = n(),
+            se=sd/sqrt(n),
+            ci = qt(0.975,df=n-1)*se) %>% 
+  ggplot(aes(x=SequenceLocation, y=mean, fill=SequenceLocation)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se),position=position_dodge(width=0.9), width=.1) +
+  facet_wrap(~SequenceNumber, ncol = 5)
+
+```
+# Dogs Data
+```{r}
+
+Dogs <- read_csv("Dogs_Data.csv")
+
+#Plot average dwell times across sequence
+Dogs %>% 
+  group_by(SlideNumber) %>% 
+  summarise(avg_residDT = mean(residDT,na.rm = T)) %>% 
+  ggplot(mapping = aes(x = SlideNumber, y = avg_residDT)) +
+  geom_line()
+
+#Plot average dwell times across sequence - separated by location in seqeunce (i.e., first, second, third, or blank image)
+Dogs %>% 
+  group_by(SlideNumber, SequenceLocation) %>% 
+  summarise(avg_residDT = mean(residDT)) %>% 
+  ggplot(mapping = aes(x = SlideNumber, y = avg_residDT, color = SequenceLocation)) +
+  geom_line()
+
+#Plotted using geom_smooth
+ggplot(data = Dogs, mapping = aes(x = SlideNumber, y = residDT, color = SequenceLocation)) +
+  geom_smooth(method = "loess")
+
+#Barplot of average dwell times across the sequence
+Dogs %>% 
+  group_by(SequenceLocation) %>% 
+  summarise(mean = mean(residDT, na.rm=TRUE),
+            sd = sd(residDT, na.rm=TRUE),
+            n = n(),
+            se=sd/sqrt(n),
+            ci = qt(0.975,df=n-1)*se) %>% 
+  ggplot(aes(x=SequenceLocation, y=mean, fill=SequenceLocation)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se),position=position_dodge(width=0.9), width=.1) 
+
+#Barplot across the first ten triads in the sequence
+Dogs %>% 
+  filter(SequenceNumber <= 10) %>% 
+  group_by(SequenceLocation, SequenceNumber) %>% 
+  summarise(mean = mean(residDT, na.rm=TRUE),
+            sd = sd(residDT, na.rm=TRUE),
+            n = n(),
+            se=sd/sqrt(n),
+            ci = qt(0.975,df=n-1)*se) %>% 
+  ggplot(aes(x=SequenceLocation, y=mean, fill=SequenceLocation)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se),position=position_dodge(width=0.9), width=.1) +
+  facet_wrap(~SequenceNumber, ncol = 5)
+```

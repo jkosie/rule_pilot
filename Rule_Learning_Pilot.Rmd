@@ -222,6 +222,35 @@ d %>%
           axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5)) 
 
 ```
+Learning curve for only texforms, separated by low and high performance on 2AFC task.
+```{r}
+texForms <-texForms %>% 
+    mutate(performance2AFC = case_when(
+    TwoAFC_PropCorrect > .6 ~ "High",
+    TwoAFC_PropCorrect <= .6 ~ "Low",
+    TRUE ~ "Error"))
+
+texForms %>% 
+  filter(SequenceLocation != "Blank") %>%
+  mutate(SequenceBin = cut(SequenceNumber, seq(0,48,8))) %>%
+  group_by(SequenceLocation, SequenceBin, performance2AFC) %>% 
+  summarise(mean = mean(residDT, na.rm=TRUE),
+            sd = sd(residDT, na.rm=TRUE),
+            n = n(),
+            se=sd/sqrt(n),
+            ci = qt(0.975,df=n-1)*se) %>% 
+  ggplot(aes(x=SequenceBin, y=mean, col=SequenceLocation, group = SequenceLocation)) +
+  geom_line() +
+  geom_linerange(aes(ymin=mean-ci, ymax=mean+ci), 
+                 position = position_dodge(width = .1)) +
+  facet_wrap(~performance2AFC) + 
+  xlab("Sequence Number (binned)") + 
+  ylab("Mean Residual Dwell Time") +
+  ggthemes::theme_few() + 
+  ggthemes::scale_color_ptol(title = "Location") + 
+  theme(legend.position = "bottom" , 
+          axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5)) 
+```
 
 Very exploratory analysis: plot the differences - slide 1/2 and slide 2/3. It seems to me pretty clear here that the difference between slide 1 and 2 is increasing, indicating a predictability effect as you get into the sequence. Interestingly this appears to be happening not on the identity (2/3) but rather on the first and second slide. 
 
@@ -249,5 +278,35 @@ d %>%
   ylab("Mean Residual Dwell Time") + 
   theme(legend.position = "bottom", 
         axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5))
+
+```
+Same plot as above, but with log transformed data.
+```{r}
+
+d %>% 
+  mutate(SequenceBin = cut(SequenceNumber, seq(0,48,8))) %>%
+  mutate(diffDT = lag(logDT) - logDT) %>%
+  group_by(Study, SequenceLocation, SequenceBin) %>% 
+  summarise(mean = mean(diffDT, na.rm=TRUE),
+            sd = sd(diffDT, na.rm=TRUE),
+            n = n(),
+            se=sd/sqrt(n),
+            ci = qt(0.975,df=n-1)*se) %>% 
+  filter(SequenceLocation %in% c("Slide2","Slide3")) %>%
+  mutate(DiffLocation = fct_recode(factor(SequenceLocation), 
+                                "Slide1/2" = "Slide2", 
+                                "Slide2/3" = "Slide3")) %>%
+  ggplot(aes(x=SequenceBin, y=mean, col=DiffLocation, group = DiffLocation)) +
+  geom_linerange(aes(ymin=mean-ci, ymax=mean+ci), 
+                 position = position_dodge(width = .1)) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Study) + 
+  geom_hline(yintercept = 0, lty = 2) + 
+  xlab("Sequence Number (binned)") + 
+  ylab("Mean Log Transformed Dwell Time") + 
+  theme(legend.position = "bottom", 
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5))
+
+
 ```
 
